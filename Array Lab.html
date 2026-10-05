@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Array Lab — Address, Insert, Delete & Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#eef2f6; --grid:#d6e0ea; --ink:#16243d; --ink-soft:#4a5a73;
+  --copper:#c7703c; --good:#2f8f5b; --bad:#c0392b; --cell:#ffffff; --cell-border:#16243d;
+  --ring: rgba(199,112,60,.35);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0f1724; --grid:#223146; --ink:#e7edf5; --ink-soft:#9fb0c6;
+    --cell:#16233a; --cell-border:#4a6184;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0f1724; --grid:#223146; --ink:#e7edf5; --ink-soft:#9fb0c6;
+  --cell:#16233a; --cell-border:#4a6184;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+*{box-sizing:border-box;}
+body{
+  margin:0; background:
+    linear-gradient(var(--grid) 1px, transparent 1px) 0 0/100% 28px,
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0/28px 100%,
+    var(--paper);
+  color:var(--ink); font-family:'IBM Plex Mono',monospace;
+  min-height:100%;
+}
+h1,h2,h3,.disp{font-family:'Space Grotesk',sans-serif;}
+.wrap{max-width:900px;margin:0 auto;padding:28px 20px 60px;}
+header.hero{padding:10px 0 22px;border-bottom:2px solid var(--ink);margin-bottom:22px;}
+.tag{font-size:13px;color:var(--copper);letter-spacing:.02em;margin:0 0 6px;}
+h1{font-size:clamp(28px,6vw,40px);margin:0 0 10px;line-height:1.05;}
+.sub{color:var(--ink-soft);max-width:60ch;font-size:14.5px;line-height:1.55;margin:0;}
+nav.switch{display:flex;flex-wrap:wrap;gap:2px;background:var(--ink);border-radius:10px;padding:3px;margin-bottom:22px;}
+nav.switch button{
+  flex:1 1 150px; border:none; background:transparent; color:#cfd9e6; font-family:'Space Grotesk',sans-serif;
+  font-weight:700; font-size:13.5px; padding:11px 8px; border-radius:7px; cursor:pointer;
+}
+nav.switch button.active{background:var(--copper); color:#1a0f08;}
+section.panel{display:none;}
+section.panel.active{display:block; animation:fade .25s ease;}
+@keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+.card{border:2px solid var(--ink); border-radius:12px; padding:18px; background:color-mix(in srgb, var(--paper) 60%, transparent); margin-bottom:16px;}
+.formula{font-size:15px; background:var(--cell); border:1px dashed var(--ink-soft); border-radius:8px; padding:10px 14px; display:inline-block; margin:8px 0;}
+.controls{display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin:10px 0 18px;}
+.controls label{font-size:12.5px; color:var(--ink-soft); display:flex; flex-direction:column; gap:4px;}
+input[type=number], input[type=text]{
+  font-family:'IBM Plex Mono',monospace; background:var(--cell); color:var(--ink); border:1.5px solid var(--ink);
+  border-radius:6px; padding:6px 8px; width:90px; font-size:14px;
+}
+input[type=range]{accent-color:var(--copper); width:150px;}
+button.act{
+  font-family:'Space Grotesk',sans-serif; font-weight:700; background:var(--ink); color:var(--paper);
+  border:none; padding:9px 16px; border-radius:7px; cursor:pointer; font-size:13.5px;
+}
+button.act:hover{background:var(--copper); color:#1a0f08;}
+button.act:disabled{opacity:.4; cursor:default;}
+.tape{display:flex; gap:0; overflow-x:auto; padding:30px 0 10px;}
+.cellwrap{display:flex; flex-direction:column; align-items:center; min-width:58px; position:relative;}
+.addr{font-size:10.5px; color:var(--ink-soft); margin-bottom:4px; white-space:nowrap;}
+.cell{
+  width:48px; height:48px; border:2px solid var(--cell-border); background:var(--cell); display:flex;
+  align-items:center; justify-content:center; font-weight:600; font-size:15px; margin-right:-2px; transition:background .25s, border-color .25s, transform .2s;
+}
+.idx{font-size:10.5px; color:var(--ink-soft); margin-top:4px;}
+.cell.hi{background:var(--copper); color:#1a0f08; border-color:var(--copper); transform:translateY(-4px);}
+.cell.good{background:var(--good); color:#fff; border-color:var(--good);}
+.cell.bad{background:var(--bad); color:#fff; border-color:var(--bad);}
+.cell.dim{opacity:.3;}
+.ptr{font-size:11px; color:var(--copper); font-weight:700; height:14px; margin-bottom:-4px;}
+.log{font-size:13px; line-height:1.7; color:var(--ink-soft); border-left:3px solid var(--copper); padding:4px 0 4px 12px; min-height:46px;}
+.log b{color:var(--ink);}
+.note{font-size:12.5px; color:var(--ink-soft); margin-top:4px;}
+footer{text-align:center; color:var(--ink-soft); font-size:12px; padding:20px 0 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <p class="tag">// array lab</p>
+    <h1>Where does element 7 actually live?</h1>
+    <p class="sub">An array is a measured strip of memory. Pick an operation below to see the tape move: addresses compute, cells shift, and pointers hunt for a value.</p>
+  </header>
+
+  <nav class="switch">
+    <button data-p="addr" class="active">Address calc</button>
+    <button data-p="insert">Insertion</button>
+    <button data-p="delete">Deletion</button>
+    <button data-p="linear">Linear search</button>
+    <button data-p="binary">Binary search</button>
+  </nav>
+
+  <!-- ADDRESS CALCULATION -->
+  <section class="panel active" id="addr">
+    <div class="card">
+      <h3>Address of A[i]</h3>
+      <div class="formula" id="addrFormula">address(A[i]) = base + i × size</div>
+      <div class="controls">
+        <label>Base address<input type="number" id="addrBase" value="1000" step="4"></label>
+        <label>Element size (bytes)<input type="number" id="addrSize" value="4" min="1" max="16"></label>
+        <label>Array length<input type="number" id="addrLen" value="8" min="2" max="14"></label>
+        <label>Index i<input type="range" id="addrIdx" min="0" max="7" value="3"></label>
+      </div>
+      <div class="log" id="addrLog"></div>
+      <div class="tape" id="addrTape"></div>
+    </div>
+  </section>
+
+  <!-- INSERTION -->
+  <section class="panel" id="insert">
+    <div class="card">
+      <h3>Insert a value at an index</h3>
+      <p class="note">Everything from that index onward slides one slot right to make room — that's why insertion costs up to O(n).</p>
+      <div class="controls">
+        <label>Value<input type="text" id="insVal" value="42"></label>
+        <label>At index<input type="number" id="insIdx" value="2" min="0"></label>
+        <button class="act" id="insGo">Insert</button>
+        <button class="act" id="insReset">Reset array</button>
+      </div>
+      <div class="log" id="insLog">Ready — array holds 6 of 10 slots.</div>
+      <div class="tape" id="insTape"></div>
+    </div>
+  </section>
+
+  <!-- DELETION -->
+  <section class="panel" id="delete">
+    <div class="card">
+      <h3>Delete the value at an index</h3>
+      <p class="note">Everything after that index slides one slot left to close the gap — also O(n) in the worst case.</p>
+      <div class="controls">
+        <label>At index<input type="number" id="delIdx" value="2" min="0"></label>
+        <button class="act" id="delGo">Delete</button>
+        <button class="act" id="delReset">Reset array</button>
+      </div>
+      <div class="log" id="delLog">Ready — array holds 6 elements.</div>
+      <div class="tape" id="delTape"></div>
+    </div>
+  </section>
+
+  <!-- LINEAR SEARCH -->
+  <section class="panel" id="linear">
+    <div class="card">
+      <h3>Linear search</h3>
+      <p class="note">Checks every cell left to right until it finds a match — O(n), works on any array, sorted or not.</p>
+      <div class="controls">
+        <label>Target<input type="number" id="linTarget" value="23"></label>
+        <button class="act" id="linGo">Search</button>
+        <button class="act" id="linReset">Shuffle array</button>
+      </div>
+      <div class="log" id="linLog">Ready.</div>
+      <div class="tape" id="linTape"></div>
+    </div>
+  </section>
+
+  <!-- BINARY SEARCH -->
+  <section class="panel" id="binary">
+    <div class="card">
+      <h3>Binary search</h3>
+      <p class="note">Requires a sorted array. Compares the middle, then throws away the half that can't contain the target — O(log n).</p>
+      <div class="controls">
+        <label>Target<input type="number" id="binTarget" value="29"></label>
+        <button class="act" id="binGo">Search</button>
+        <button class="act" id="binReset">New sorted array</button>
+      </div>
+      <div class="log" id="binLog">Ready.</div>
+      <div class="ptr" id="binPtrs"></div>
+      <div class="tape" id="binTape"></div>
+    </div>
+  </section>
+
+  <footer>Array Lab — a small tool for seeing how arrays actually work underneath.</footer>
+</div>
+
+<script>
+// ---------- nav ----------
+document.querySelectorAll('nav.switch button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('nav.switch button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('section.panel').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById(b.dataset.p).classList.add('active');
+  });
+});
+function rand(n,max){return Array.from({length:n},()=>Math.floor(Math.random()*max)+1);}
+function sorted(n,max){return rand(n,max).sort((a,b)=>a-b);}
+
+// ---------- ADDRESS CALC ----------
+function renderAddr(){
+  const base=+addrBase.value, size=+addrSize.value, len=+addrLen.value, idx=+addrIdx.value;
+  addrIdx.max = len-1; if(+addrIdx.value>len-1){addrIdx.value=len-1;}
+  const i=+addrIdx.value;
+  const tape=document.getElementById('addrTape'); tape.innerHTML='';
+  for(let k=0;k<len;k++){
+    const a=base+k*size;
+    const w=document.createElement('div'); w.className='cellwrap';
+    w.innerHTML=`<div class="addr">0x${a.toString(16)}</div><div class="cell ${k===i?'hi':''}">A[${k}]</div><div class="idx">i=${k}</div>`;
+    tape.appendChild(w);
+  }
+  document.getElementById('addrLog').innerHTML =
+    `<b>address(A[${i}])</b> = ${base} + ${i} × ${size} = <b>${base+i*size}</b> (0x${(base+i*size).toString(16)})`;
+}
+['addrBase','addrSize','addrLen','addrIdx'].forEach(id=>document.getElementById(id).addEventListener('input',renderAddr));
+renderAddr();
+
+// ---------- INSERTION ----------
+let insArr, insCap=10;
+function initIns(){ insArr=[12,5,18,9,31,7]; renderIns(); document.getElementById('insLog').textContent='Ready — array holds '+insArr.length+' of '+insCap+' slots.'; }
+function renderIns(hiFrom=-1,markNew=-1){
+  const tape=document.getElementById('insTape'); tape.innerHTML='';
+  for(let k=0;k<insCap;k++){
+    const w=document.createElement('div'); w.className='cellwrap';
+    const filled = k<insArr.length;
+    let cls='cell'+(k===markNew?' good':(hiFrom>=0&&k>=hiFrom&&filled?' hi':''))+(filled?'':' dim');
+    w.innerHTML=`<div class="addr">&nbsp;</div><div class="${cls}">${filled?insArr[k]:'—'}</div><div class="idx">${k}</div>`;
+    tape.appendChild(w);
+  }
+}
+document.getElementById('insGo').addEventListener('click',()=>{
+  let idx=Math.max(0,Math.min(+insIdx.value, insArr.length));
+  if(insArr.length>=insCap){ document.getElementById('insLog').textContent='Array is full — reset to try again.'; return; }
+  const val=insVal.value===''?0:(isNaN(+insVal.value)?insVal.value:+insVal.value);
+  renderIns(idx);
+  setTimeout(()=>{
+    insArr.splice(idx,0,val);
+    renderIns(-1, idx);
+    document.getElementById('insLog').innerHTML=`Shifted index ${idx}..${insArr.length-2} right by one, then wrote <b>${val}</b> at index <b>${idx}</b>.`;
+  },380);
+});
+document.getElementById('insReset').addEventListener('click', initIns);
+initIns();
+
+// ---------- DELETION ----------
+let delArr;
+function initDel(){ delArr=[12,5,18,9,31,7]; renderDel(); document.getElementById('delLog').textContent='Ready — array holds '+delArr.length+' elements.'; }
+function renderDel(target=-1,shiftFrom=-1){
+  const tape=document.getElementById('delTape'); tape.innerHTML='';
+  for(let k=0;k<10;k++){
+    const filled=k<delArr.length;
+    const w=document.createElement('div'); w.className='cellwrap';
+    let cls='cell'+(k===target?' bad':(shiftFrom>=0&&k>=shiftFrom&&filled?' hi':''))+(filled?'':' dim');
+    w.innerHTML=`<div class="addr">&nbsp;</div><div class="${cls}">${filled?delArr[k]:'—'}</div><div class="idx">${k}</div>`;
+    tape.appendChild(w);
+  }
+}
+document.getElementById('delGo').addEventListener('click',()=>{
+  let idx=+delIdx.value;
+  if(idx<0||idx>=delArr.length){ document.getElementById('delLog').textContent='Index out of range.'; return; }
+  const removed=delArr[idx];
+  renderDel(idx);
+  setTimeout(()=>{
+    delArr.splice(idx,1);
+    renderDel(-1, idx);
+    document.getElementById('delLog').innerHTML=`Removed <b>${removed}</b> from index <b>${idx}</b>, then shifted everything after it one slot left.`;
+  },380);
+});
+document.getElementById('delReset').addEventListener('click', initDel);
+initDel();
+
+// ---------- LINEAR SEARCH ----------
+let linArr;
+function initLin(){ linArr=rand(9,50); renderLin(); document.getElementById('linLog').textContent='Ready. Array: '+linArr.join(', '); }
+function renderLin(states={}){
+  const tape=document.getElementById('linTape'); tape.innerHTML='';
+  linArr.forEach((v,k)=>{
+    const w=document.createElement('div'); w.className='cellwrap';
+    const cls='cell'+(states[k]?' '+states[k]:'');
+    w.innerHTML=`<div class="addr">&nbsp;</div><div class="${cls}">${v}</div><div class="idx">${k}</div>`;
+    tape.appendChild(w);
+  });
+}
+document.getElementById('linGo').addEventListener('click', async ()=>{
+  const target=+linTarget.value; const log=document.getElementById('linLog'); const btn=document.getElementById('linGo');
+  btn.disabled=true;
+  for(let k=0;k<linArr.length;k++){
+    renderLin({[k]:'hi'});
+    log.innerHTML=`Checking index <b>${k}</b>: is ${linArr[k]} === ${target}?`;
+    await new Promise(r=>setTimeout(r,420));
+    if(linArr[k]===target){ renderLin({[k]:'good'}); log.innerHTML=`Found <b>${target}</b> at index <b>${k}</b> after ${k+1} comparisons.`; btn.disabled=false; return; }
+  }
+  renderLin(); log.innerHTML=`<b>${target}</b> is not in the array — checked all ${linArr.length} elements.`;
+  btn.disabled=false;
+});
+document.getElementById('linReset').addEventListener('click', initLin);
+initLin();
+
+// ---------- BINARY SEARCH ----------
+let binArr;
+function initBin(){ binArr=sorted(11,60); renderBin(); document.getElementById('binLog').textContent='Ready. Sorted array: '+binArr.join(', '); document.getElementById('binPtrs').textContent=''; }
+function renderBin(lo=-1,hi=-1,mid=-1,dead=[]){
+  const tape=document.getElementById('binTape'); tape.innerHTML='';
+  binArr.forEach((v,k)=>{
+    const w=document.createElement('div'); w.className='cellwrap';
+    let cls='cell'+(k===mid?' hi':(dead.includes(k)?' dim':''));
+    w.innerHTML=`<div class="addr">&nbsp;</div><div class="${cls}">${v}</div><div class="idx">${k===lo?'lo ':''}${k===hi?'hi ':''}${k}</div>`;
+    tape.appendChild(w);
+  });
+}
+document.getElementById('binGo').addEventListener('click', async ()=>{
+  const target=+binTarget.value; const log=document.getElementById('binLog'); const btn=document.getElementById('binGo');
+  btn.disabled=true;
+  let lo=0, hi=binArr.length-1, dead=[], steps=0;
+  while(lo<=hi){
+    const mid=Math.floor((lo+hi)/2); steps++;
+    renderBin(lo,hi,mid,dead);
+    log.innerHTML=`lo=${lo}, hi=${hi} → mid=${mid} → A[mid]=${binArr[mid]}. Compare to ${target}.`;
+    await new Promise(r=>setTimeout(r,550));
+    if(binArr[mid]===target){ renderBin(lo,hi,mid,dead); log.innerHTML=`Found <b>${target}</b> at index <b>${mid}</b> in ${steps} comparisons.`; btn.disabled=false; return; }
+    if(binArr[mid]<target){ for(let k=lo;k<=mid;k++) dead.push(k); lo=mid+1; }
+    else { for(let k=mid;k<=hi;k++) dead.push(k); hi=mid-1; }
+  }
+  renderBin(lo,hi,-1,dead);
+  log.innerHTML=`<b>${target}</b> is not in the array — range emptied after ${steps} comparisons.`;
+  btn.disabled=false;
+});
+document.getElementById('binReset').addEventListener('click', initBin);
+initBin();
+</script>
+</body>
+</html>
